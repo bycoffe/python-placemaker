@@ -1,0 +1,47 @@
+Usage examples
+
+>>> from placemaker import placemaker
+>>> p = placemaker(YOUR_API_KEY)
+>>> p.find_places("I live in Virginia Beach. I grew up in Baltimore")
+[<Placemaker Place: 'Baltimore, MD, US'>, <Placemaker Place: 'Virginia Beach, VA, US'>]
+
+>>> p.places
+[<Placemaker Place: 'Baltimore, MD, US'>,
+ <Placemaker Place: 'Virginia Beach, VA, US'>]
+
+>>> p.geographic_scope
+<Placemaker GeographicScope: 'East Coast, US'>
+
+>>> p.administrative_scope
+<Placemaker AdministrativeScope: 'United States'>
+
+>>> for place in p.places:
+        print place.centroid.latitude, place.centroid.longitude
+39.2906 -76.6096
+36.755 -76.0592
+
+>>> for place in p.places:
+        print place.placetype
+Town
+Town
+
+>>> for place in p.places:
+        print place.woeid
+2358820
+2512636
+
+>>> for place in p.places:
+        print place.confidence
+6
+9
+
+>>> p.find_places("http://hamptonroads.com/pilotonline")
+[<Placemaker Place: 'Palermo, Sicily, IT'>,
+ <Placemaker Place: 'Kerry, IE'>,
+ <Placemaker Place: 'District of Columbia, US'>,
+ <Placemaker Place: 'Minnesota, US'>,
+ <Placemaker Place: 'North Carolina, US'>,
+ <Placemaker Place: 'Virginia, US'>,
+ <Placemaker Place: 'Wisconsin, US'>,
+ <Placemaker Place: 'Chesapeake, VA, US'>,
+...]
