@@ -1,0 +1,177 @@
+"""
+Python wrapper for the Yahoo Placemaker API.
+
+See also:
+
+Yahoo Placemaker API Documentation:
+    http://developer.yahoo.com/geo/placemaker/guide/api_docs.html
+
+Yahoo Placemaker API Reference:
+    http://developer.yahoo.com/geo/placemaker/guide/api-reference.html
+"""
+
+__author__ = "Aaron Bycoffe (bycoffe@gmail.com"
+__version__ = "0.1.0"
+__copyright__ = "Copyright (c) 2009 Aaron Bycoffe"
+__license__ = "BSD"
+
+
+import urllib
+import urllib2
+
+from xml.etree import ElementTree
+
+
+TAG_PREFIX = '{http://wherein.yahooapis.com/v1/schema}'
+
+
+class PlacemakerApiError(Exception):
+    pass
+
+
+class PlaceDetails(object):
+    pass
+
+
+class Place(object):
+
+    def __init__(self, tree):
+        self.place = tree.find('%splace' % TAG_PREFIX)
+
+        self.woeid = self.place.find('%swoeId' % TAG_PREFIX).text
+        try:
+            self.woeid = int(self.woeid)
+        except ValueError:
+            pass
+
+        self.placetype = self.place.find('%stype' % TAG_PREFIX).text
+        self.name = self.place.find('%sname' % TAG_PREFIX).text
+        self.name = self.name.encode('utf-8', 'ignore')
+
+        self.centroid = PlacemakerPoint(self.place.find('%scentroid' % TAG_PREFIX))
+        self.match_type = tree.find('%smatchType' % TAG_PREFIX).text
+        try:
+            self.match_type = int(self.match_type)
+        except ValueError:
+            pass
+
+        self.weight = tree.find('%sweight' % TAG_PREFIX).text
+        try:
+            self.weight = int(self.weight)
+        except ValueError:
+            pass
+
+        self.confidence = tree.find('%sconfidence' % TAG_PREFIX).text
+        try:
+            self.confidence = int(self.confidence)
+        except ValueError:
+            pass
+
+    def __repr__(self):
+        return "<Placemaker Place: '%s'>" % self.name
+
+
+class Scope(object):
+
+    def __init__(self, tree):
+        self.name = tree.find('%sname' % TAG_PREFIX).text
+        if self.name:
+            self.name = self.name.encode('utf-8', 'ignore')
+
+        self.woeid = tree.find('%swoeId' % TAG_PREFIX).text
+        try:
+            self.woeid = int(self.woeid)
+        except ValueError:
+            pass
+
+        self.placetype = tree.find('%stype' % TAG_PREFIX).text
+        self.centroid = PlacemakerPoint(tree.find('%scentroid' % TAG_PREFIX))
+
+    def __repr__(self):
+        return u"<Placemaker Scope: '%s'>" % self.name
+
+
+class AdministrativeScope(Scope):
+    
+    def __repr__(self):
+        return u"<Placemaker AdministrativeScope: '%s'>" % self.name
+
+
+class GeographicScope(Scope):
+
+    def __repr__(self):
+        return u"<Placemaker GeographicScope: '%s'>" % self.name
+
+
+class PlacemakerPoint(object):
+
+    def __init__(self, tree):
+        self.latitude = tree.find('%slatitude' % TAG_PREFIX).text
+        self.longitude = tree.find('%slongitude' % TAG_PREFIX).text
+
+    def __repr__(self):
+        return u"<Placemaker Point: '%s, %s'>" % (self.latitude, self.longitude)
+
+
+class Extents(object):
+
+    def __init__(self, tree):
+        self.center = PlacemakerPoint(tree.find('%scenter' % TAG_PREFIX))
+        self.southwest = PlacemakerPoint(tree.find('%ssouthwest' % TAG_PREFIX))
+        self.northeast = PlacemakerPoint(tree.find('%snortheast' % TAG_PREFIX))
+
+
+
+class placemaker(object):
+
+    def __init__(self, api_key):
+        self.api_key = api_key 
+        self.url = 'http://wherein.yahooapis.com/v1/document'
+    
+
+    def find_places(self, input, documentType='text/plain', inputLanguage='en-US', 
+                    outputType='xml', documentTitle='', autoDisambiguate='true',
+                    focusWoeid=''):
+
+        self.values = {'appid': self.api_key,
+                       'documentType': documentType,
+                       'inputLanguage': inputLanguage,
+                       'outputType': outputType,
+                       'documentTitle': documentTitle,
+                       'autoDisambiguate': autoDisambiguate,
+                       'focusWoeid': focusWoeid, }
+
+        self.values[('documentURL' if input.startswith('http://') 
+                                else 'documentContent')] = input
+
+        self.data = urllib.urlencode(self.values)
+        self.req = urllib2.Request(self.url, self.data)
+        self.response = urllib2.urlopen(self.req)
+
+        response_codes = {400: 'Bad Request',
+                          404: 'Not Found',
+                          413: 'Request Entity Too Large',
+                          415: 'Unsupported Media Type',
+                          999: 'Unable to process request at this time', }
+
+        if self.response.code != 200:
+            raise PlacemakerApiError('Request received a response code of %d: %s' % (self.response.code, response_codes[self.response.code]))
+
+        self.response_xml = self.response.read()
+
+        self.tree = ElementTree.fromstring(self.response_xml)
+
+        self.doc = self.tree.find('%sdocument' % TAG_PREFIX)
+
+        administrative_scope_tree = self.doc.find('%sadministrativeScope' % TAG_PREFIX)
+        if administrative_scope_tree:
+            self.administrative_scope = AdministrativeScope(administrative_scope_tree)
+
+        geographic_scope_tree = self.doc.find('%sgeographicScope' % TAG_PREFIX)
+        if geographic_scope_tree:
+            self.geographic_scope = GeographicScope(geographic_scope_tree)
+
+        place_details = self.doc.findall('%splaceDetails' % TAG_PREFIX)
+        self.places = [Place(place) for place in place_details]
+
+        return self.places
