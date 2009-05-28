@@ -1,6 +1,11 @@
 """
 Python wrapper for the Yahoo Placemaker API.
 
+Requires Python 2.5 or above.
+
+Requires an API key from the Yahoo Developer network: 
+    https://developer.yahoo.com/wsregapp/
+
 See also:
 
 Yahoo Placemaker API Documentation:
@@ -10,7 +15,7 @@ Yahoo Placemaker API Reference:
     http://developer.yahoo.com/geo/placemaker/guide/api-reference.html
 """
 
-__author__ = "Aaron Bycoffe (bycoffe@gmail.com"
+__author__ = "Aaron Bycoffe (bycoffe@gmail.com)"
 __version__ = "0.1.0"
 __copyright__ = "Copyright (c) 2009 Aaron Bycoffe"
 __license__ = "BSD"
@@ -22,14 +27,14 @@ import urllib2
 from xml.etree import ElementTree
 
 
+# When using ElementTree to parse the XML returned by the API,
+# each tag is prefixed by the schema URL. We need to use this
+# prefix when finding tags in the document.
 TAG_PREFIX = '{http://wherein.yahooapis.com/v1/schema}'
 
 
 class PlacemakerApiError(Exception):
-    pass
-
-
-class PlaceDetails(object):
+    """Exceptions for Yahoo Placemaker API errors"""
     pass
 
 
