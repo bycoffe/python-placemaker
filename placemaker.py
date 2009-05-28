@@ -23,7 +23,6 @@ __license__ = "BSD"
 
 import urllib
 import urllib2
-
 from xml.etree import ElementTree
 
 
@@ -112,7 +111,12 @@ class PlacemakerPoint(object):
 
     def __init__(self, tree):
         self.latitude = tree.find('%slatitude' % TAG_PREFIX).text
+        if self.latitude:
+            self.latitude = float(self.latitude)
+
         self.longitude = tree.find('%slongitude' % TAG_PREFIX).text
+        if self.longitude:
+            self.longitude = float(self.longitude)
 
     def __repr__(self):
         return u"<Placemaker Point: '%s, %s'>" % (self.latitude, self.longitude)
